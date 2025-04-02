@@ -47,7 +47,7 @@ def start_recording():
     recording = True
     print("Recording started!")
     video_filename = os.path.join("/media/mingle/R", f"bird_{int(time.time())}.mp4")
-    # 30 fps video
+    # 10 fps video
     video_writer = cv2.VideoWriter(video_filename, fourcc, 10.0, (CAMERA_WIDTH, CAMERA_HEIGHT))
 
 def stop_recording():
@@ -143,7 +143,6 @@ def detect_birds(processed_frame, original_frame):
         cv2.rectangle(original_frame, (roi_x, roi_y), ((roi_x + roi_width), (roi_y + roi_height)), (255, 0, 0), 2)
         cv2.putText(original_frame, str(bird_state), (50, 50), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 0, 255), 2)
         
-
 def run():
     global recording, video_writer
 
@@ -178,5 +177,7 @@ def run():
     # Cleanup
     camera.release()
     cv2.destroyAllWindows()
+    if recording:
+        video_writer.release()
 
 run()
