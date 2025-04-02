@@ -4,6 +4,13 @@ import os
 import numpy as np
 from enum import Enum
 
+### TODO ###
+# - Organize uploaded files by date in folder
+# - Have files have clear time
+# - Auto start up program at 5am
+# - Auto upload to cloud?
+# - Hook up the RPI5 and normal camera
+
 # Enum for tracking bird detection state
 class BirdState(Enum):
     NO_BIRD = "No bird"
