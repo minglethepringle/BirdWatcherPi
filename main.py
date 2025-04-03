@@ -1,6 +1,5 @@
 import config
 from picamera2 import Picamera2
-from picamera2.encoders import H264Encoder
 import cv2
 import time
 import os
@@ -22,12 +21,9 @@ camera = Picamera2()
 
 # Set resolution
 camera.configure(
-    camera.create_preview_configuration(
+    camera.create_video_configuration(
         main={"format": "BGR888", "size": (config.CAMERA_WIDTH, config.CAMERA_HEIGHT), "preserve_ar": True}
     )
-    # camera.create_video_configuration(
-    #     main={"format": "XBGR8888", "size": (config.CAMERA_WIDTH, config.CAMERA_HEIGHT), "preserve_ar": True}
-    # )
 )
 camera.set_controls({"FrameRate": config.FPS})
 camera.start()

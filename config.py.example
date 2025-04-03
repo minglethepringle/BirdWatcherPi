@@ -8,11 +8,11 @@ DEBUG_MODE = True
 
 # Width and height for the RPi Camera Module v3
 # In pixels
-CAMERA_WIDTH = 1280
-CAMERA_HEIGHT = 720
+CAMERA_WIDTH = 640
+CAMERA_HEIGHT = 480
 
 # Time to allow camera to calibrate when booting up, in seconds
-WARMUP_TIME = 10
+WARMUP_TIME = 5
 
 # Percentage of the screen for the region of interest, where detection happens
 # (0 = none, 1 = full screen)
@@ -24,8 +24,9 @@ ROI_SIZE = 0.5
 # and the video will be named with the time of recording
 VIDEO_SAVE_ROOT = "/media/pi/usb"
 
-# Frames per second for the video
-FPS = 10.0
+# Frames per second for the camera and video
+# Would recommend 30fps, seems to be a good middle ground
+FPS = 30
 
 #########################
 ### DETECTION OPTIONS ###
