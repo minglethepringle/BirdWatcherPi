@@ -1,5 +1,6 @@
 import config
 from picamera2 import Picamera2
+from picamera2.encoders import H264Encoder
 import cv2
 import time
 import os
@@ -20,7 +21,15 @@ class BirdState(Enum):
 camera = Picamera2()
 
 # Set resolution
-camera.configure(camera.create_video_configuration(main={"format": "XBGR8888", "size": (config.CAMERA_WIDTH, config.CAMERA_HEIGHT), "preserve_ar": True}))
+camera.configure(
+    camera.create_preview_configuration(
+        main={"format": "BGR888", "size": (config.CAMERA_WIDTH, config.CAMERA_HEIGHT), "preserve_ar": True}
+    )
+    # camera.create_video_configuration(
+    #     main={"format": "XBGR8888", "size": (config.CAMERA_WIDTH, config.CAMERA_HEIGHT), "preserve_ar": True}
+    # )
+)
+camera.set_controls({"FrameRate": config.FPS})
 camera.start()
 
 # Initialize the MOG2 background subtractor
@@ -33,7 +42,6 @@ roi_x = (config.CAMERA_WIDTH - roi_width) // 2
 roi_y = (config.CAMERA_HEIGHT - roi_height) // 2
 
 # Video writer (initialized later)
-fourcc = cv2.VideoWriter_fourcc(*"mp4v")  # Codec for MP4 format
 video_writer = None
 video_filename = None
 
@@ -54,7 +62,12 @@ def start_recording():
         time.strftime("%Y-%m-%d"),
         time.strftime("%H%M%S") + ".mp4",
     )
-    video_writer = cv2.VideoWriter(video_filename, fourcc, config.FPS, (config.CAMERA_WIDTH, config.CAMERA_HEIGHT))
+    # Ensure directories exist
+    os.makedirs(os.path.dirname(video_filename), exist_ok=True)
+
+    video_writer = cv2.VideoWriter(
+        video_filename, cv2.VideoWriter_fourcc(*"mp4v"), config.FPS, (config.CAMERA_WIDTH, config.CAMERA_HEIGHT)
+    )
 
 
 def stop_recording():
@@ -175,15 +188,15 @@ def run():
     run_time = time.time()
 
     while True:
-        original_frame = camera.capture_array()
-
-        # Give a couple seconds to allow camera to calibrate
-        if time.time() - run_time <= config.WARMUP_TIME:
-            continue
+        original_frame = cv2.cvtColor(camera.capture_array(), cv2.COLOR_RGB2BGR)
 
         processed_frame = ignore_outside_roi(original_frame)
 
         processed_frame = find_changes(processed_frame)
+
+        # Give a couple seconds to allow camera to calibrate
+        if time.time() - run_time <= config.WARMUP_TIME:
+            continue
 
         detect_birds(processed_frame, original_frame)
 
@@ -191,17 +204,19 @@ def run():
             video_writer.write(original_frame)
 
         cv2.imshow("Original Frame", original_frame)
-        cv2.imshow("Processed", processed_frame)
+        if config.DEBUG_MODE:
+            cv2.imshow("Processed", processed_frame)
 
         # Press 'q' to quit
         if cv2.waitKey(1) & 0xFF == ord("q"):
-            break
+            print("Quitting!")
 
-    # Cleanup
-    camera.release()
-    cv2.destroyAllWindows()
-    if recording:
-        video_writer.release()
+            # Cleanup
+            cv2.destroyAllWindows()
+            camera.stop()
+            if recording:
+                video_writer.release()
+            break
 
 
 run()

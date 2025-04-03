@@ -22,11 +22,9 @@ ROI_SIZE = 0.5
 # Root folder where videos will be saved
 # Videos will be saved into a subfolder named with the current date
 # and the video will be named with the time of recording
-VIDEO_SAVE_ROOT = "/media/usb1/videos/"
+VIDEO_SAVE_ROOT = "/media/pi/usb"
 
 # Frames per second for the video
-# I'm still confused as to whether this is the number of frames per second
-# that the VideoWriter writes or how fast the video is played back
 FPS = 10.0
 
 #########################
