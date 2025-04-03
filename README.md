@@ -10,8 +10,9 @@
 ## Installation
 1. `pip install opencv-python requests threading`
 2. Create a Streamable and Mailgun account
-3. Configure `config.py` to your heart's content
-4. `python3 main.py`
+3. `mv config.py.example config.py`
+4. Configure `config.py` to your heart's content
+5. `python3 main.py`
 
 ## TODO
 - [x] Organize uploaded files by date in folder
