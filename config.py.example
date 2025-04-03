@@ -21,7 +21,7 @@ ROI_SIZE = 0.5
 # Root folder where videos will be saved
 # Videos will be saved into a subfolder named with the current date
 # and the video will be named with the time of recording
-VIDEO_SAVE_ROOT = "/path/to/root"
+VIDEO_SAVE_ROOT = "/media/usb1/videos/"
 
 # Frames per second for the video
 # I'm still confused as to whether this is the number of frames per second
