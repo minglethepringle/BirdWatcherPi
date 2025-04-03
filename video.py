@@ -5,10 +5,8 @@ import config
 
 def process_video(video_file_path):
     # Upload video in a separate thread
-    upload_thread = threading.Thread(
-        target=upload_video, args=(video_file_path,), daemon=True
-    )
-    # upload_thread.start()
+    upload_thread = threading.Thread(target=upload_video, args=(video_file_path,), daemon=True)
+    upload_thread.start()
 
 
 def upload_video(video_file_path):
@@ -25,13 +23,16 @@ def upload_video(video_file_path):
         video_info = response.json()
         short_link = f"https://streamable.com/{video_info['shortcode']}"
 
+        print("Video uploaded successfully!")
+        print(f"Video link: {short_link}")
+
         send_email(short_link)
     else:
         print(f"❌ Upload failed! Error: {response.text}")
 
 
 def send_email(short_link):
-    return requests.post(
+    requests.post(
         config.MAILGUN_API_URL,
         auth=("api", config.MAILGUN_API_KEY),
         data={
@@ -41,3 +42,5 @@ def send_email(short_link):
             "text": f"Video link: {short_link}",
         },
     )
+
+    print("Email sent successfully!")

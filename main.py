@@ -6,6 +6,8 @@ import os
 import numpy as np
 from enum import Enum
 from video import process_video
+import threading
+import queue
 
 
 # Enum for tracking bird detection state
@@ -37,15 +39,23 @@ roi_height = int(config.CAMERA_HEIGHT * config.ROI_SIZE)
 roi_x = (config.CAMERA_WIDTH - roi_width) // 2
 roi_y = (config.CAMERA_HEIGHT - roi_height) // 2
 
-# Video writer (initialized later)
+# Video writing
 video_writer = None
 video_filename = None
+frame_queue = queue.Queue()
 
 # Tracking state
 bird_state = BirdState.NO_BIRD
 start_time = None
 end_time = None
 recording = False
+
+
+def video_writer_thread():
+    # If recording is True, write frames
+    # If recording is False, wait for the queue to empty
+    while recording or not frame_queue.empty():
+        video_writer.write(frame_queue.get())
 
 
 def start_recording():
@@ -65,13 +75,23 @@ def start_recording():
         video_filename, cv2.VideoWriter_fourcc(*"mp4v"), config.FPS, (config.CAMERA_WIDTH, config.CAMERA_HEIGHT)
     )
 
+    # Start the video writer thread
+    threading.Thread(target=video_writer_thread, daemon=True).start()
+
 
 def stop_recording():
-    global recording, video_filename, video_writer
+    global recording, video_writer
 
     recording = False
-    video_writer.release()
     print("Recording stopped!")
+
+    # Wait for the queue to empty, intentionally block thread
+    # to ensure all frames are written and prevent new recording from starting
+    while not frame_queue.empty():
+        time.sleep(0.1)
+
+    if video_writer:
+        video_writer.release()
 
     process_video(video_filename)
 
@@ -197,7 +217,8 @@ def run():
         detect_birds(processed_frame, original_frame)
 
         if recording:
-            video_writer.write(original_frame)
+            # Enqueue the frame for the video writer thread
+            frame_queue.put(original_frame)
 
         cv2.imshow("Original Frame", original_frame)
         if config.DEBUG_MODE:
@@ -211,7 +232,7 @@ def run():
             cv2.destroyAllWindows()
             camera.stop()
             if recording:
-                video_writer.release()
+                stop_recording()
             break
 
 
