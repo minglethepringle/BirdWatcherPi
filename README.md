@@ -11,7 +11,6 @@
 ## Installation
 1. `sudo apt update && sudo apt upgrade`
 2. `sudo apt install python3-opencv`
-3. `sudo modprobe bcm2835-v4l2` to enable RPi camera 
 3. Create a Streamable and Mailgun account
 4. `cp config.py.example config.py`
 5. Configure `config.py` to your heart's content

@@ -1,13 +1,13 @@
 import config
 from picamera2 import Picamera2
+from picamera2.encoders import H264Encoder, Quality
+from picamera2.outputs import FfmpegOutput
 import cv2
 import time
 import os
 import numpy as np
 from enum import Enum
 from video import process_video
-import threading
-import queue
 
 
 # Enum for tracking bird detection state
@@ -26,6 +26,7 @@ camera.configure(
     camera.create_video_configuration(main={"format": "BGR888", "size": (4608, 2592), "preserve_ar": True})
 )
 camera.set_controls({"FrameRate": config.FPS})
+encoder = H264Encoder(framerate=config.FPS)
 
 # Initialize the MOG2 background subtractor
 fgbg = cv2.createBackgroundSubtractorMOG2(detectShadows=False, varThreshold=200)
@@ -37,9 +38,7 @@ roi_x = (config.CAMERA_WIDTH - roi_width) // 2
 roi_y = (config.CAMERA_HEIGHT - roi_height) // 2
 
 # Video writing
-video_writer = None
 video_filename = None
-frame_queue = queue.Queue()
 
 # Tracking state
 bird_state = BirdState.NO_BIRD
@@ -48,15 +47,8 @@ end_time = None
 recording = False
 
 
-def video_writer_thread():
-    # If recording is True, write frames
-    # If recording is False, wait for the queue to empty
-    while recording or not frame_queue.empty():
-        video_writer.write(frame_queue.get())
-
-
 def start_recording():
-    global recording, video_filename, video_writer
+    global recording, video_filename
 
     recording = True
     print("Recording started!")
@@ -68,27 +60,17 @@ def start_recording():
     # Ensure directories exist
     os.makedirs(os.path.dirname(video_filename), exist_ok=True)
 
-    video_writer = cv2.VideoWriter(
-        video_filename, cv2.VideoWriter_fourcc(*"mp4v"), config.FPS, (config.CAMERA_WIDTH, config.CAMERA_HEIGHT)
-    )
-
-    # Start the video writer thread
-    threading.Thread(target=video_writer_thread, daemon=True).start()
+    output = FfmpegOutput(video_filename)
+    camera.start_encoder(encoder, output, quality=Quality.HIGH)
 
 
 def stop_recording():
-    global recording, video_writer
+    global recording
 
     recording = False
     print("Recording stopped!")
 
-    # Wait for the queue to empty, intentionally block thread
-    # to ensure all frames are written and prevent new recording from starting
-    while not frame_queue.empty():
-        time.sleep(0.1)
-
-    if video_writer:
-        video_writer.release()
+    camera.stop_encoder()
 
     process_video(video_filename)
 
@@ -204,7 +186,7 @@ def detect_birds(processed_frame, original_frame):
 
 
 def run():
-    global recording, video_writer
+    global recording
 
     run_time = time.time()
 
@@ -221,10 +203,6 @@ def run():
 
         detect_birds(processed_frame, original_frame)
 
-        if recording:
-            # Enqueue the frame for the video writer thread
-            frame_queue.put(original_frame)
-
         cv2.imshow("Original Frame", original_frame)
         if config.DEBUG_MODE:
             cv2.imshow("Processed", processed_frame)
@@ -232,12 +210,6 @@ def run():
         # Press 'q' to quit
         if cv2.waitKey(1) & 0xFF == ord("q"):
             print("Quitting!")
-
-            # Cleanup
-            cv2.destroyAllWindows()
-            camera.stop()
-            if recording:
-                stop_recording()
             break
 
 
@@ -249,6 +221,12 @@ def main():
 
     camera.start()
     run()
+
+    # Cleanup
+    cv2.destroyAllWindows()
+    if recording:
+        stop_recording()
+    camera.stop()
 
 
 if __name__ == "__main__":
