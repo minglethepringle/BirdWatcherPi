@@ -1,4 +1,5 @@
 import config
+from picamera2 import Picamera2
 import cv2
 import time
 import os
@@ -16,11 +17,11 @@ class BirdState(Enum):
 
 
 # Open the camera
-camera = cv2.VideoCapture(0)
+camera = Picamera2()
 
 # Set resolution
-camera.set(cv2.CAP_PROP_FRAME_WIDTH, config.CAMERA_WIDTH)
-camera.set(cv2.CAP_PROP_FRAME_HEIGHT, config.CAMERA_HEIGHT)
+camera.configure(camera.create_video_configuration(main={"format": "XBGR8888", "size": (config.CAMERA_WIDTH, config.CAMERA_HEIGHT), "preserve_ar": True}))
+camera.start()
 
 # Initialize the MOG2 background subtractor
 fgbg = cv2.createBackgroundSubtractorMOG2(detectShadows=False)
@@ -174,9 +175,7 @@ def run():
     run_time = time.time()
 
     while True:
-        ret, original_frame = camera.read()
-        if not ret:
-            break
+        original_frame = camera.capture_array()
 
         # Give a couple seconds to allow camera to calibrate
         if time.time() - run_time <= config.WARMUP_TIME:

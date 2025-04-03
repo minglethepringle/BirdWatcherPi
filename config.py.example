@@ -6,9 +6,10 @@
 # Set to False for clean video without any overlays
 DEBUG_MODE = True
 
+# Width and height for the RPi Camera Module v3
 # In pixels
-CAMERA_WIDTH = 640
-CAMERA_HEIGHT = 480
+CAMERA_WIDTH = 1280
+CAMERA_HEIGHT = 720
 
 # Time to allow camera to calibrate when booting up, in seconds
 WARMUP_TIME = 10
