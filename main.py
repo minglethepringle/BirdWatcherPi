@@ -28,7 +28,7 @@ camera.configure(
 camera.set_controls({"FrameRate": config.FPS})
 
 # Initialize the MOG2 background subtractor
-fgbg = cv2.createBackgroundSubtractorMOG2(detectShadows=False, history=500, varThreshold=200)
+fgbg = cv2.createBackgroundSubtractorMOG2(detectShadows=False, varThreshold=200)
 
 # Define the dimensions of the center box (ROI)
 roi_width = int(config.CAMERA_WIDTH * config.ROI_SIZE)
