@@ -1,15 +1,11 @@
+import config
 import cv2
 import time
 import os
 import numpy as np
 from enum import Enum
+from video import process_video
 
-### TODO ###
-# - Organize uploaded files by date in folder
-# - Have files have clear time
-# - Auto start up program at 5am
-# - Auto upload to cloud?
-# - Hook up the RPI5 and normal camera
 
 # Enum for tracking bird detection state
 class BirdState(Enum):
@@ -18,27 +14,25 @@ class BirdState(Enum):
     BIRD_CONFIRMED = "Bird confirmed"
     POSSIBLY_LEFT = "Possibly left"
 
-DEBUG_MODE = True
-CAMERA_WIDTH = 640
-CAMERA_HEIGHT = 480
-WARMUP_TIME = 10 # Give 10 seconds to allow camera to calibrate
 
 # Open the camera
 camera = cv2.VideoCapture(0)
 
 # Set resolution
-camera.set(cv2.CAP_PROP_FRAME_WIDTH, CAMERA_WIDTH)
-camera.set(cv2.CAP_PROP_FRAME_HEIGHT, CAMERA_HEIGHT)
+camera.set(cv2.CAP_PROP_FRAME_WIDTH, config.CAMERA_WIDTH)
+camera.set(cv2.CAP_PROP_FRAME_HEIGHT, config.CAMERA_HEIGHT)
 
 # Initialize the MOG2 background subtractor
-fgbg = cv2.createBackgroundSubtractorMOG2(detectShadows = False)
+fgbg = cv2.createBackgroundSubtractorMOG2(detectShadows=False)
 
 # Define the dimensions of the center box (ROI)
-roi_x, roi_y = int(CAMERA_WIDTH * 0.25), int(CAMERA_HEIGHT * 0.25)  # Center start
-roi_width, roi_height = int(CAMERA_WIDTH * 0.5), int(CAMERA_HEIGHT * 0.5)  # Center box size
+roi_width = int(config.CAMERA_WIDTH * config.ROI_SIZE)
+roi_height = int(config.CAMERA_HEIGHT * config.ROI_SIZE)
+roi_x = (config.CAMERA_WIDTH - roi_width) // 2
+roi_y = (config.CAMERA_HEIGHT - roi_height) // 2
 
 # Video writer (initialized later)
-fourcc = cv2.VideoWriter_fourcc(*'mp4v')  # Codec for MP4 format
+fourcc = cv2.VideoWriter_fourcc(*"mp4v")  # Codec for MP4 format
 video_writer = None
 video_filename = None
 
@@ -48,14 +42,19 @@ start_time = None
 end_time = None
 recording = False
 
+
 def start_recording():
-    global recording, video_filename, video_writer  
-    
+    global recording, video_filename, video_writer
+
     recording = True
     print("Recording started!")
-    video_filename = os.path.join("/media/mingle/R", f"bird_{int(time.time())}.mp4")
-    # 10 fps video
-    video_writer = cv2.VideoWriter(video_filename, fourcc, 10.0, (CAMERA_WIDTH, CAMERA_HEIGHT))
+    video_filename = os.path.join(
+        config.VIDEO_SAVE_ROOT,
+        time.strftime("%Y-%m-%d"),
+        time.strftime("%H%M%S") + ".mp4",
+    )
+    video_writer = cv2.VideoWriter(video_filename, fourcc, config.FPS, (config.CAMERA_WIDTH, config.CAMERA_HEIGHT))
+
 
 def stop_recording():
     global recording, video_filename, video_writer
@@ -64,35 +63,38 @@ def stop_recording():
     video_writer.release()
     print("Recording stopped!")
 
-    # TODO: Upload video to cloud
+    process_video(video_filename)
+
 
 def ignore_outside_roi(frame):
     # Create a mask for the center region (ROI)
     roi_mask = np.zeros_like(frame)  # Initialize the mask with zeros (black)
-    roi_mask[roi_y:roi_y+roi_height, roi_x:roi_x+roi_width] = 255  # Set the ROI region to white
+    roi_mask[roi_y : roi_y + roi_height, roi_x : roi_x + roi_width] = 255  # Set the ROI region to white
 
     # Apply the mask to the frame: mask out everything outside the ROI
     frame = cv2.bitwise_and(frame, roi_mask)
 
     return frame
 
+
 def find_changes(frame):
     # Convert current frame to grayscale
     frame = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
 
     # Reduce noise
-    frame = cv2.GaussianBlur(frame, (21, 21), 0)
+    frame = cv2.GaussianBlur(frame, config.GAUSSIAN_BLUR_SIZE, 0)
 
     # Apply the background subtractor
     frame = fgbg.apply(frame)
 
-    # Threshold = make either full black or full white; pixel intensity >= 30, make 255 (white)
-    _, frame = cv2.threshold(frame, 30, 255, cv2.THRESH_BINARY)
+    # Threshold = make either full black or full white; pixel intensity >= threshold, make 255 (white)
+    _, frame = cv2.threshold(frame, config.THRESHOLD_VALUE, 255, cv2.THRESH_BINARY)
 
     # Dilate to reinforce detected objects
-    frame = cv2.dilate(frame, None, iterations=2)
+    frame = cv2.dilate(frame, None, iterations=config.DILATION_ITERATIONS)
 
     return frame
+
 
 def detect_birds(processed_frame, original_frame):
     global bird_state, start_time, end_time
@@ -102,22 +104,23 @@ def detect_birds(processed_frame, original_frame):
 
     object_present = False
     for contour in contours:
-        if cv2.contourArea(contour) < 600: # Ignore small movements
+        if cv2.contourArea(contour) < config.CONTOUR_AREA_THRESHOLD:  # Ignore small movements
             continue
         object_present = True  # If we detect a large enough object
         (x, y, w, h) = cv2.boundingRect(contour)
-        if DEBUG_MODE: cv2.rectangle(original_frame, (x, y), (x + w, y + h), (0, 255, 0), 2)
-    
+        if config.DEBUG_MODE:
+            cv2.rectangle(original_frame, (x, y), (x + w, y + h), (0, 255, 0), 2)
+
     # State transitions
     if object_present:
         if bird_state == BirdState.NO_BIRD:
-            # Something detected, let's start timer 
+            # Something detected, let's start timer
             print("Motion detected! Waiting for confirmation...")
             bird_state = BirdState.SOMETHING_PRESENT
             start_time = time.time()
         elif bird_state == BirdState.SOMETHING_PRESENT:
             # Has it been one second?
-            if time.time() - start_time >= 1:
+            if time.time() - start_time >= config.MIN_DETECTION_TIME:
                 print("Bird confirmed! Starting recording...")
                 bird_state = BirdState.BIRD_CONFIRMED
                 start_recording()
@@ -140,16 +143,31 @@ def detect_birds(processed_frame, original_frame):
             end_time = time.time()
         elif bird_state == BirdState.POSSIBLY_LEFT:
             # Has it been one second?
-            if time.time() - end_time >= 1:
+            if time.time() - end_time >= config.MIN_DETECTION_TIME:
                 print("Bird left! Stopping recording...")
                 bird_state = BirdState.NO_BIRD
                 stop_recording()
 
-    if DEBUG_MODE:
+    if config.DEBUG_MODE:
         # Draw ROI rectangle
-        cv2.rectangle(original_frame, (roi_x, roi_y), ((roi_x + roi_width), (roi_y + roi_height)), (255, 0, 0), 2)
-        cv2.putText(original_frame, str(bird_state), (50, 50), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 0, 255), 2)
-        
+        cv2.rectangle(
+            original_frame,
+            (roi_x, roi_y),
+            ((roi_x + roi_width), (roi_y + roi_height)),
+            (255, 0, 0),
+            2,
+        )
+        cv2.putText(
+            original_frame,
+            str(bird_state),
+            (50, 50),
+            cv2.FONT_HERSHEY_SIMPLEX,
+            1,
+            (0, 0, 255),
+            2,
+        )
+
+
 def run():
     global recording, video_writer
 
@@ -161,8 +179,8 @@ def run():
             break
 
         # Give a couple seconds to allow camera to calibrate
-        if time.time() - run_time <= WARMUP_TIME:
-            continue 
+        if time.time() - run_time <= config.WARMUP_TIME:
+            continue
 
         processed_frame = ignore_outside_roi(original_frame)
 
@@ -173,12 +191,11 @@ def run():
         if recording:
             video_writer.write(original_frame)
 
-        if DEBUG_MODE:
-            cv2.imshow("Original Frame", original_frame)
-            cv2.imshow("Processed", processed_frame)
+        cv2.imshow("Original Frame", original_frame)
+        cv2.imshow("Processed", processed_frame)
 
         # Press 'q' to quit
-        if cv2.waitKey(1) & 0xFF == ord('q'):
+        if cv2.waitKey(1) & 0xFF == ord("q"):
             break
 
     # Cleanup
@@ -186,5 +203,6 @@ def run():
     cv2.destroyAllWindows()
     if recording:
         video_writer.release()
+
 
 run()
