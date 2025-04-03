@@ -4,6 +4,10 @@ import config
 
 
 def process_video(video_file_path):
+    if config.DEBUG_MODE:
+        print("Debug mode is enabled, skipping upload.")
+        return
+
     # Upload video in a separate thread
     upload_thread = threading.Thread(target=upload_video, args=(video_file_path,), daemon=True)
     upload_thread.start()

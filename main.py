@@ -21,17 +21,14 @@ class BirdState(Enum):
 # Open the camera
 camera = Picamera2()
 
-# Set resolution
+# Set resolution (capture image in full resolution, no digital zooming)
 camera.configure(
-    camera.create_video_configuration(
-        main={"format": "BGR888", "size": (config.CAMERA_WIDTH, config.CAMERA_HEIGHT), "preserve_ar": True}
-    )
+    camera.create_video_configuration(main={"format": "BGR888", "size": (4608, 2592), "preserve_ar": True})
 )
 camera.set_controls({"FrameRate": config.FPS})
-camera.start()
 
 # Initialize the MOG2 background subtractor
-fgbg = cv2.createBackgroundSubtractorMOG2(detectShadows=False)
+fgbg = cv2.createBackgroundSubtractorMOG2(detectShadows=False, history=500, varThreshold=200)
 
 # Define the dimensions of the center box (ROI)
 roi_width = int(config.CAMERA_WIDTH * config.ROI_SIZE)
@@ -94,6 +91,14 @@ def stop_recording():
         video_writer.release()
 
     process_video(video_filename)
+
+
+def get_original_frame():
+    # Capture frame from camera and downsize for processing
+    original_frame = cv2.cvtColor(camera.capture_array(), cv2.COLOR_RGB2BGR)
+    original_frame = cv2.resize(original_frame, (config.CAMERA_WIDTH, config.CAMERA_HEIGHT))
+
+    return original_frame
 
 
 def ignore_outside_roi(frame):
@@ -204,13 +209,13 @@ def run():
     run_time = time.time()
 
     while True:
-        original_frame = cv2.cvtColor(camera.capture_array(), cv2.COLOR_RGB2BGR)
+        original_frame = get_original_frame()
 
         processed_frame = ignore_outside_roi(original_frame)
 
         processed_frame = find_changes(processed_frame)
 
-        # Give a couple seconds to allow camera to calibrate
+        # Give a couple seconds to allow the MOG2 background subtractor to calibrate
         if time.time() - run_time <= config.WARMUP_TIME:
             continue
 
@@ -236,4 +241,15 @@ def run():
             break
 
 
-run()
+def main():
+    if not config.DEBUG_MODE:
+        while time.localtime().tm_hour != config.STARTUP_HOUR:
+            print("Waiting for startup time...")
+            time.sleep(60)
+
+    camera.start()
+    run()
+
+
+if __name__ == "__main__":
+    main()

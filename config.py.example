@@ -3,15 +3,16 @@
 #######################
 
 # Set to True for bounding boxes and current state drawn onto the video.
-# Set to False for clean video without any overlays
+# This will disable recording and uploading to the cloud!
+# Set to False for clean video without any overlays and enable cloud uploads
 DEBUG_MODE = True
 
-# Width and height for the RPi Camera Module v3
+# Width and height that you want to capture at
 # In pixels
-CAMERA_WIDTH = 640
-CAMERA_HEIGHT = 480
+CAMERA_WIDTH = 960
+CAMERA_HEIGHT = 540
 
-# Time to allow camera to calibrate when booting up, in seconds
+# Time to allow MOG2 background subtractor to learn the background, in seconds
 WARMUP_TIME = 5
 
 # Percentage of the screen for the region of interest, where detection happens
@@ -27,6 +28,10 @@ VIDEO_SAVE_ROOT = "/media/pi/usb"
 # Frames per second for the camera and video
 # Would recommend 30fps, seems to be a good middle ground
 FPS = 30
+
+# Startup time to start processing and recording, e.g. 6am
+# Specify an hour in 24 hour format, e.g. 6 for 6am, 18 for 6pm
+STARTUP_HOUR = 6
 
 #########################
 ### DETECTION OPTIONS ###
