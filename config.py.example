@@ -31,7 +31,11 @@ FPS = 30
 
 # Startup time to start processing and recording, e.g. 6am
 # Specify an hour in 24 hour format, e.g. 6 for 6am, 18 for 6pm
-STARTUP_HOUR = 6
+START_HOUR = 6
+
+# Ending time to end processing and recording, e.g. 10am
+# Specify an hour in 24 hour format, e.g. 6 for 6am, 18 for 6pm
+END_HOUR = 10
 
 #########################
 ### DETECTION OPTIONS ###

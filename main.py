@@ -191,6 +191,11 @@ def run():
     run_time = time.time()
 
     while True:
+        # Check if the current time has reached or passed END_HOUR
+        if not config.DEBUG_MODE and time.localtime().tm_hour >= config.END_HOUR:
+            print("Reached END_HOUR during processing. Exiting run loop.")
+            break
+
         original_frame = get_original_frame()
 
         processed_frame = ignore_outside_roi(original_frame)
@@ -214,19 +219,24 @@ def run():
 
 
 def main():
-    if not config.DEBUG_MODE:
-        while time.localtime().tm_hour != config.STARTUP_HOUR:
+    while True:
+        # Wait for START_HOUR
+        if not config.DEBUG_MODE and (
+            time.localtime().tm_hour < config.START_HOUR or time.localtime().tm_hour >= config.END_HOUR
+        ):
             print("Waiting for startup time...")
             time.sleep(60)
+            continue
 
-    camera.start()
-    run()
+        camera.start()
+        # Run the main processing loop
+        run()
 
-    # Cleanup
-    cv2.destroyAllWindows()
-    if recording:
-        stop_recording()
-    camera.stop()
+        # Cleanup after exiting the run loop
+        cv2.destroyAllWindows()
+        if recording:
+            stop_recording()
+        camera.stop()
 
 
 if __name__ == "__main__":
