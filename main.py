@@ -2,6 +2,7 @@ import config
 from picamera2 import Picamera2
 from picamera2.encoders import H264Encoder, Quality
 from picamera2.outputs import FfmpegOutput
+from libcamera import controls
 import cv2
 import time
 import os
@@ -21,11 +22,15 @@ class BirdState(Enum):
 # Open the camera
 camera = Picamera2()
 
-# Set resolution (capture image in full resolution, no digital zooming)
+# Set resolution (capture image in full resolution, no digital zooming) and controls
 camera.configure(
     camera.create_video_configuration(main={"format": "BGR888", "size": (4608, 2592), "preserve_ar": True})
 )
-camera.set_controls({"FrameRate": config.FPS})
+camera.set_controls({
+    "FrameRate": config.FPS,
+    "AfMode": controls.AfModeEnum.Manual,
+    "LensPosition": config.LENS_POSITION
+})
 encoder = H264Encoder(framerate=config.FPS)
 
 # Initialize the MOG2 background subtractor
@@ -45,6 +50,8 @@ bird_state = BirdState.NO_BIRD
 start_time = None
 end_time = None
 recording = False
+
+force_quit = False
 
 
 def start_recording():
@@ -186,7 +193,7 @@ def detect_birds(processed_frame, original_frame):
 
 
 def run():
-    global recording
+    global recording, force_quit
 
     run_time = time.time()
 
@@ -215,6 +222,7 @@ def run():
         # Press 'q' to quit
         if cv2.waitKey(1) & 0xFF == ord("q"):
             print("Quitting!")
+            force_quit = True
             break
 
 
@@ -237,6 +245,9 @@ def main():
         if recording:
             stop_recording()
         camera.stop()
+        
+        if force_quit:
+            break
 
 
 if __name__ == "__main__":

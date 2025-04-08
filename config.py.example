@@ -29,6 +29,11 @@ VIDEO_SAVE_ROOT = "/media/pi/usb"
 # Would recommend 30fps, seems to be a good middle ground
 FPS = 30
 
+# Autofocus lens position, used to set focus point
+# Minimum of 0, maximum of 32. Play around with this command:
+# libcamera-still --autofocus-mode manual --lens-position [value]
+LENS_POSITION = 5.0
+
 # Startup time to start processing and recording, e.g. 6am
 # Specify an hour in 24 hour format, e.g. 6 for 6am, 18 for 6pm
 START_HOUR = 6
