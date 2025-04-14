@@ -143,14 +143,14 @@ def detect_birds(processed_frame, original_frame):
             bird_state = BirdState.SOMETHING_PRESENT
             start_time = time.time()
         elif bird_state == BirdState.SOMETHING_PRESENT:
-            # Has it been one second?
+            # Has it been enough time since detection?
             if time.time() - start_time >= config.MIN_DETECTION_TIME:
                 print("Bird confirmed! Starting recording...")
                 bird_state = BirdState.BIRD_CONFIRMED
                 start_recording()
         # Object present + confirmed bird = do nothing
         elif bird_state == BirdState.POSSIBLY_LEFT:
-            # In this state, that means it's been less than 1 second
+            # In this state, that means it's been less than the detection time
             # and it came back, so restore it to BIRD_CONFIRMED
             print("Bird left and came back!")
             bird_state = BirdState.BIRD_CONFIRMED
@@ -166,7 +166,7 @@ def detect_birds(processed_frame, original_frame):
             bird_state = BirdState.POSSIBLY_LEFT
             end_time = time.time()
         elif bird_state == BirdState.POSSIBLY_LEFT:
-            # Has it been one second?
+            # Has it been enough time since left?
             if time.time() - end_time >= config.MIN_DETECTION_TIME:
                 print("Bird left! Stopping recording...")
                 bird_state = BirdState.NO_BIRD
