@@ -7,8 +7,8 @@
 # Set to False for clean video without any overlays and enable cloud uploads
 DEBUG_MODE = True
 
-# Width and height that you want to capture at
-# In pixels
+# Width and height that you want to capture at, in pixels
+# Cam will capture in full FOV then scale down to specified size
 CAMERA_WIDTH = 960
 CAMERA_HEIGHT = 540
 
