@@ -34,6 +34,14 @@ FPS = 30
 # libcamera-still --autofocus-mode manual --lens-position [value]
 LENS_POSITION = 5.0
 
+# Record audio using a plugged-in USB microphone
+# Any USB microphone with a built-in soundcard will do
+RECORD_AUDIO = False
+
+# The time shift to apply between audio/video stream, in seconds
+# Tweak this to improve the audio/video synchronization
+AUDIO_SYNC = 0.5
+
 # Startup time to start processing and recording, e.g. 6am
 # Specify an hour in 24 hour format, e.g. 6 for 6am, 18 for 6pm
 START_HOUR = 6

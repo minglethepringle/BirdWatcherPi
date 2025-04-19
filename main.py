@@ -67,7 +67,7 @@ def start_recording():
     # Ensure directories exist
     os.makedirs(os.path.dirname(video_filename), exist_ok=True)
 
-    output = FfmpegOutput(video_filename)
+    output = FfmpegOutput(video_filename, audio=config.RECORD_AUDIO, audio_sync=config.AUDIO_SYNC)
     camera.start_encoder(encoder, output, quality=Quality.HIGH)
 
 
