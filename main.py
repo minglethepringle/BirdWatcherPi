@@ -26,11 +26,7 @@ camera = Picamera2()
 camera.configure(
     camera.create_video_configuration(main={"format": "BGR888", "size": (4608, 2592), "preserve_ar": True})
 )
-camera.set_controls({
-    "FrameRate": config.FPS,
-    "AfMode": controls.AfModeEnum.Manual,
-    "LensPosition": config.LENS_POSITION
-})
+camera.set_controls({"AfMode": controls.AfModeEnum.Manual, "LensPosition": config.LENS_POSITION})
 encoder = H264Encoder(framerate=config.FPS)
 
 # Initialize the MOG2 background subtractor
@@ -215,8 +211,8 @@ def run():
 
         detect_birds(processed_frame, original_frame)
 
-        cv2.imshow("Original Frame", original_frame)
         if config.DEBUG_MODE:
+            cv2.imshow("Original Frame", original_frame)
             cv2.imshow("Processed", processed_frame)
 
         # Press 'q' to quit
@@ -245,7 +241,7 @@ def main():
         if recording:
             stop_recording()
         camera.stop()
-        
+
         if force_quit:
             break
 
