@@ -24,7 +24,12 @@ camera = Picamera2()
 
 # Set resolution (capture image in full resolution, no digital zooming) and controls
 camera.configure(
-    camera.create_video_configuration(main={"format": "BGR888", "size": (4608, 2592), "preserve_ar": True})
+    camera.create_video_configuration(
+        raw={"size": (2304, 1296)},
+        main={"format": "BGR888", "size": (2304, 1296), "preserve_ar": True},
+        lores={"format": "BGR888", "size": (config.CAMERA_WIDTH, config.CAMERA_HEIGHT), "preserve_ar": True},
+        encode="lores",
+    )
 )
 camera.set_controls({"AfMode": controls.AfModeEnum.Manual, "LensPosition": config.LENS_POSITION})
 encoder = H264Encoder(framerate=config.FPS)
@@ -80,8 +85,7 @@ def stop_recording():
 
 def get_original_frame():
     # Capture frame from camera and downsize for processing
-    original_frame = cv2.cvtColor(camera.capture_array(), cv2.COLOR_RGB2BGR)
-    original_frame = cv2.resize(original_frame, (config.CAMERA_WIDTH, config.CAMERA_HEIGHT))
+    original_frame = cv2.cvtColor(camera.capture_array("lores"), cv2.COLOR_RGB2BGR)
 
     return original_frame
 
