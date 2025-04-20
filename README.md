@@ -1,4 +1,11 @@
 # BirdWatcherPi
+<img style="width: 200px" src="https://github.com/user-attachments/assets/209d5610-f0c6-48f3-988d-00bcc6f1ee44"/>
+
+## Materials
+- Raspberry Pi 5
+- Raspberry Pi Camera Module 3
+- USB 3.0 stick
+- [USB microphone](https://www.amazon.com/dp/B08M37224H)
 
 ## Features
 - Bird motion detection using OpenCV
