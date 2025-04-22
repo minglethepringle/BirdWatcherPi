@@ -1,6 +1,14 @@
 import requests
 import threading
+import queue
+import time
 import config
+
+# Create a queue to store video file paths
+video_queue = queue.Queue()
+
+# Flag to signal the upload thread to stop
+stop_upload_thread = False
 
 
 def process_video(video_file_path):
@@ -8,16 +16,29 @@ def process_video(video_file_path):
         print("Debug mode is enabled, skipping upload.")
         return
 
-    # Upload video in a separate thread
-    upload_thread = threading.Thread(target=upload_video, args=(video_file_path,), daemon=True)
-    upload_thread.start()
+    # Add the video file path to the queue
+    video_queue.put(video_file_path)
+    print(f"Video added to upload queue: {video_file_path}")
+
+
+def upload_worker():
+    global stop_upload_thread
+
+    while not stop_upload_thread or not video_queue.empty():
+        # Wait for 1 min to prevent rate limiting
+        time.sleep(60)
+
+        try:
+            # Get a video file path from the queue
+            video_file_path = video_queue.get(timeout=1)
+
+            print(f"Uploading video: {video_file_path}")
+            upload_video(video_file_path)
+        except queue.Empty:
+            continue
 
 
 def upload_video(video_file_path):
-    # Give it 10 seconds for FFmpeg to finish writing the file
-    print("Waiting for FFmpeg to finish writing the file...")
-    threading.Event().wait(10)
-
     print("Uploading video...")
 
     # Open and upload the video
@@ -54,3 +75,8 @@ def send_email(short_link):
     )
 
     print("Email sent successfully!")
+
+
+# Start the upload worker thread
+upload_thread = threading.Thread(target=upload_worker, daemon=True)
+upload_thread.start()

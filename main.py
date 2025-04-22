@@ -8,7 +8,7 @@ import time
 import os
 import numpy as np
 from enum import Enum
-from video import process_video
+from video import process_video, stop_upload_thread
 
 
 # Enum for tracking bird detection state
@@ -193,7 +193,7 @@ def detect_birds(processed_frame, original_frame):
 
 
 def run():
-    global recording, force_quit
+    global recording, force_quit, stop_upload_thread
 
     run_time = time.time()
 
@@ -223,6 +223,7 @@ def run():
         if cv2.waitKey(1) & 0xFF == ord("q"):
             print("Quitting!")
             force_quit = True
+            stop_upload_thread = True
             break
 
 
