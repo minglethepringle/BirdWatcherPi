@@ -14,6 +14,12 @@ def process_video(video_file_path):
 
 
 def upload_video(video_file_path):
+    # Give it 10 seconds for FFmpeg to finish writing the file
+    print("Waiting for FFmpeg to finish writing the file...")
+    threading.Event().wait(10)
+
+    print("Uploading video...")
+
     # Open and upload the video
     with open(video_file_path, "rb") as video_file:
         response = requests.post(
